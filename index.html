@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>You Gotta Eat Here — My Bucket List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --paper:#F4ECD8;
+    --paper-card:#FFFBF0;
+    --ink:#1F3A5F;
+    --ketchup:#C8391E;
+    --ketchup-dark:#9E2C16;
+    --mustard:#E8A33D;
+    --charcoal:#2B2521;
+    --line: rgba(31,58,95,0.18);
+    --status-open:#3F7A4E;
+    --status-closed:#8a5a4a;
+    --status-changed:#B5791F;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(31,58,95,0.08) 1px, transparent 0);
+    background-size: 22px 22px;
+    color:var(--charcoal);
+    font-family:'Work Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--ketchup-dark); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:18px 16px 60px;}
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    text-align:center;
+    padding:28px 10px 18px;
+    border-bottom:3px dashed var(--ink);
+    margin-bottom:22px;
+    position:relative;
+  }
+  .route-badge{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink); background:rgba(31,58,95,0.07);
+    border:1px solid var(--line); border-radius:20px;
+    padding:5px 14px; margin-bottom:14px;
+  }
+  h1.title{
+    font-family:'Alfa Slab One', serif;
+    font-weight:400;
+    font-size:clamp(34px, 7vw, 64px);
+    line-height:0.95;
+    margin:0;
+    color:var(--ketchup);
+    text-shadow: 3px 3px 0 var(--ink-shadow, rgba(31,58,95,0.18));
+    letter-spacing:0.5px;
+  }
+  h1.title .sub{
+    display:block;
+    font-family:'Alfa Slab One', serif;
+    font-size:clamp(15px, 2.6vw, 22px);
+    color:var(--ink);
+    letter-spacing:2px;
+    margin-top:6px;
+  }
+  .hero-tagline{
+    max-width:560px; margin:14px auto 0;
+    font-size:15px; color:var(--charcoal); opacity:0.85;
+    line-height:1.5;
+  }
+  .tally-row{
+    display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
+    margin-top:20px;
+  }
+  .tally{
+    background:var(--paper-card);
+    border:2px solid var(--ink);
+    border-radius:10px;
+    padding:8px 16px;
+    text-align:center;
+    min-width:108px;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .tally .num{
+    font-family:'Alfa Slab One', serif;
+    font-size:26px; color:var(--ketchup); display:block; line-height:1;
+  }
+  .tally .lbl{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink); opacity:0.75;
+  }
+
+  /* ---------- SEARCH ---------- */
+  .order-pad{
+    background:var(--paper-card);
+    border:2px solid var(--ink);
+    border-radius:14px;
+    padding:14px 16px;
+    margin:0 0 18px;
+    box-shadow: 4px 4px 0 var(--ink);
+    display:flex; align-items:center; gap:10px;
+  }
+  .order-pad .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--ink); white-space:nowrap;
+    border-right:1px dashed var(--line);
+    padding-right:10px;
+  }
+  .order-pad input{
+    flex:1;
+    border:none; outline:none; background:transparent;
+    font-family:'Work Sans', sans-serif;
+    font-size:16px; font-weight:600; color:var(--charcoal);
+  }
+  .order-pad input::placeholder{ color:rgba(43,37,33,0.45); font-weight:500; }
+  .order-pad .clear-btn{
+    border:none; background:var(--mustard); color:var(--charcoal);
+    font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600;
+    padding:7px 12px; border-radius:8px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.05em;
+    border:1px solid var(--ink);
+  }
+  .order-pad .clear-btn:hover{ background:#d4912f; }
+
+  /* ---------- LAYOUT ---------- */
+  .layout{ display:flex; flex-direction:column; gap:18px; }
+  #map{
+    width:100%; height:380px;
+    border-radius:14px;
+    border:2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .results-meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; color:var(--ink); opacity:0.8;
+    margin:2px 2px 4px;
+  }
+  .list{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px,1fr));
+    gap:14px;
+  }
+  .empty-msg{
+    grid-column:1/-1;
+    text-align:center; padding:30px 10px;
+    font-family:'IBM Plex Mono', monospace; font-size:13px;
+    color:var(--ink); opacity:0.7;
+  }
+
+  /* ---------- CARD ---------- */
+  .card{
+    background:var(--paper-card);
+    border:2px solid var(--ink);
+    border-radius:12px;
+    padding:14px 14px 14px;
+    position:relative;
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: 3px 3px 0 rgba(31,58,95,0.5);
+  }
+  .card.highlight{
+    transform: translateY(-2px) scale(1.015);
+    box-shadow: 5px 5px 0 var(--ketchup);
+    border-color: var(--ketchup);
+  }
+  .card .stamp{
+    position:absolute; top:-12px; right:-8px;
+    width:58px; height:58px;
+    border-radius:50%;
+    border:2px dashed var(--ketchup);
+    color:var(--ketchup);
+    display:flex; align-items:center; justify-content:center;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px; font-weight:600; line-height:1.15;
+    transform: rotate(8deg);
+    background: rgba(244,236,216,0.9);
+  }
+  .card h3{
+    margin:0 36px 4px 0;
+    font-family:'Work Sans', sans-serif;
+    font-weight:700; font-size:17px;
+    color:var(--charcoal);
+  }
+  .card .city-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px; letter-spacing:.04em;
+    color:var(--ink);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .status-badge{
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    padding:3px 9px; border-radius:20px;
+    margin-bottom:8px;
+    color:#fff;
+  }
+  .status-badge.is-open{ background:var(--status-open); }
+  .status-badge.is-closed{ background:var(--status-closed); }
+  .status-badge.is-changed{ background:var(--status-changed); }
+  .status-note{
+    font-size:12px; color:var(--charcoal); opacity:0.75;
+    margin:-2px 0 8px; line-height:1.4; font-style:italic;
+  }
+  .filter-row{
+    display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px;
+  }
+  .filter-pill{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    padding:7px 13px; border-radius:20px;
+    border:1.5px solid var(--ink); background:transparent; color:var(--ink);
+    cursor:pointer;
+  }
+  .filter-pill[data-active="true"]{
+    background:var(--ink); color:var(--paper-card);
+  }
+  .filter-pill .count{ opacity:0.7; margin-left:4px; }
+  .card .dish{
+    font-size:13.5px; color:var(--charcoal); opacity:0.88;
+    margin:0 0 10px; line-height:1.4;
+  }
+  .card .watch{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px; font-weight:600; letter-spacing:.04em;
+    color:#fff; background:var(--ketchup);
+    padding:6px 12px; border-radius:20px;
+    text-decoration:none;
+  }
+  .card .watch:hover{ background:var(--ketchup-dark); text-decoration:none; }
+
+  .leaflet-popup-content{ font-family:'Work Sans', sans-serif; font-size:13px; min-width:170px; }
+  .leaflet-popup-content b{ font-family:'Work Sans', sans-serif; font-size:14px; }
+  .popup-watch{ display:inline-block; margin-top:6px; font-weight:600; color:var(--ketchup-dark); }
+
+  .pin-dot{
+    width:16px; height:16px; border-radius:50%;
+    background:var(--ketchup); border:2px solid #fff;
+    box-shadow:0 0 0 1px var(--ink);
+  }
+
+  footer{
+    margin-top:34px; padding-top:16px; border-top:2px dashed var(--ink);
+    font-size:12.5px; color:var(--ink); opacity:0.75; text-align:center;
+    line-height:1.6;
+  }
+
+  @media (min-width: 860px){
+    .layout{ flex-direction:row; align-items:flex-start; }
+    .map-col{ flex: 0 0 46%; position:sticky; top:16px; }
+    #map{ height: calc(100vh - 32px); min-height:480px; }
+    .list-col{ flex:1; min-width:0; }
+    .list{ grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="route-badge">📍 Season 1 &amp; 2 · Food Network Canada</div>
+    <h1 class="title">YOU GOTTA<br/>EAT HERE
+      <span class="sub">— MY BUCKET LIST —</span>
+    </h1>
+    <p class="hero-tagline">Every greasy spoon, smokehouse and 9‑lb burger John Catucci hit on the show — mapped out so I can actually go eat there.</p>
+    <div class="tally-row">
+      <div class="tally"><span class="num" id="statStops">0</span><span class="lbl">Stops</span></div>
+      <div class="tally"><span class="num" id="statCities">0</span><span class="lbl">Cities</span></div>
+      <div class="tally"><span class="num" id="statOpen">0</span><span class="lbl">Confirmed Open</span></div>
+    </div>
+  </header>
+
+  <div class="order-pad">
+    <span class="tag">Search</span>
+    <input id="searchInput" type="text" placeholder="Search by city — Toronto, Halifax, Vancouver…" autocomplete="off">
+    <button class="clear-btn" id="clearBtn">Clear</button>
+  </div>
+
+  <div class="filter-row" id="filterRow"></div>
+
+  <div class="layout">
+    <div class="map-col">
+      <div id="map"></div>
+    </div>
+    <div class="list-col">
+      <div class="results-meta" id="resultsMeta">Showing all stops</div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+
+  <footer>
+    Mapped at city level (exact addresses vary by restaurant) · Pulled from Seasons 1–2 of <i>You Gotta Eat Here</i><br/>
+    Open/closed status is hand-checked, not live — checked spots are labelled, the rest just haven't been looked up yet (not necessarily closed).<br/>
+    Always worth a quick Google/Maps check before you make the trip. Want more verified, or Seasons 3–5 added? Just ask.
+  </footer>
+
+</div>
+
+<script id="dataJson" type="application/json">[{"id":1,"name":"Boomers Gourmet Fries","city":"Stratford","region":"ON","country":"CA","lat":43.37,"lng":-80.9821,"dish":"12 poutine combos","season":1,"episode":1,"url":"https://www.tvmaze.com/episodes/710613/you-gotta-eat-here-1x01-boomers-gourmet-fries-relish-burgers-johns-place","status":"closed","statusNote":"Multiple listings report this location as permanently closed."},{"id":2,"name":"Relish Burgers","city":"London","region":"ON","country":"CA","lat":42.9849,"lng":-81.2453,"dish":"40+ gourmet burgers","season":1,"episode":1,"url":"https://www.tvmaze.com/episodes/710613/you-gotta-eat-here-1x01-boomers-gourmet-fries-relish-burgers-johns-place","status":"closed","statusNote":"Listings report this location as permanently closed."},{"id":3,"name":"John's Place","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"10+ varieties of Eggs Benny","season":1,"episode":1,"url":"https://www.tvmaze.com/episodes/710613/you-gotta-eat-here-1x01-boomers-gourmet-fries-relish-burgers-johns-place","status":"open","statusNote":"Still serving breakfast & lunch on Pandora Ave \u2014 40+ years running."},{"id":4,"name":"Pizzeria Napoletana","city":"Montreal","region":"QC","country":"CA","lat":45.5017,"lng":-73.5673,"dish":"Hand-crushed tomato sauce, old-school Italian","season":1,"episode":2,"url":"https://www.tvmaze.com/episodes/710614/you-gotta-eat-here-1x02-pizzeria-napoletana-floyds-diner-haugens-chicken-ribs","status":"open","statusNote":"Still open in Little Italy, same address since 1948."},{"id":5,"name":"Floyd's Diner","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"Coin-flip 'Mahoney' mystery meal","season":1,"episode":2,"url":"https://www.tvmaze.com/episodes/710614/you-gotta-eat-here-1x02-pizzeria-napoletana-floyds-diner-haugens-chicken-ribs","status":"unverified","statusNote":""},{"id":6,"name":"Haugen's Chicken & Ribs","city":"Port Perry","region":"ON","country":"CA","lat":44.1011,"lng":-78.9456,"dish":"Top-secret dipping sauce","season":1,"episode":2,"url":"https://www.tvmaze.com/episodes/710614/you-gotta-eat-here-1x02-pizzeria-napoletana-floyds-diner-haugens-chicken-ribs","status":"unverified","statusNote":""},{"id":7,"name":"Salvatore's Pizzaiolo Trattoria","city":"Halifax","region":"NS","country":"CA","lat":44.6488,"lng":-63.5752,"dish":"Cheese-under-the-sauce pizza pie","season":1,"episode":3,"url":"https://www.tvmaze.com/episodes/710615/you-gotta-eat-here-1x03-salvatores-pizzaiolo-trattoria-the-harbour-diner-hoito-restaurant","status":"unverified","statusNote":""},{"id":8,"name":"The Harbour Diner","city":"Hamilton","region":"ON","country":"CA","lat":43.2557,"lng":-79.8711,"dish":"Crab & lobster mac'n cheese","season":1,"episode":3,"url":"https://www.tvmaze.com/episodes/710615/you-gotta-eat-here-1x03-salvatores-pizzaiolo-trattoria-the-harbour-diner-hoito-restaurant","status":"unverified","statusNote":""},{"id":9,"name":"Hoito Restaurant","city":"Thunder Bay","region":"ON","country":"CA","lat":48.3809,"lng":-89.2477,"dish":"Paper-thin Finnish pancakes (100 yrs)","season":1,"episode":3,"url":"https://www.tvmaze.com/episodes/710615/you-gotta-eat-here-1x03-salvatores-pizzaiolo-trattoria-the-harbour-diner-hoito-restaurant","status":"changed","statusNote":"Original Bay St. location closed in 2020. Revived by a co-op, now serving limited hours out of Goods & Co. Market \u2014 not the original room."},{"id":10,"name":"Stoney's Bread Company","city":"Oakville","region":"ON","country":"CA","lat":43.4675,"lng":-79.6877,"dish":"Open-faced blackened salmon sandwich","season":1,"episode":4,"url":"https://www.tvmaze.com/episodes/710616/you-gotta-eat-here-1x04-stoneys-bread-company-rock-cod-cafe-the-tomahawk","status":"unverified","statusNote":""},{"id":11,"name":"Rock Cod Cafe","city":"Cowichan Bay","region":"BC","country":"CA","lat":48.7333,"lng":-123.6167,"dish":"The Captain's Plate deep-fried seafood","season":1,"episode":4,"url":"https://www.tvmaze.com/episodes/710616/you-gotta-eat-here-1x04-stoneys-bread-company-rock-cod-cafe-the-tomahawk","status":"unverified","statusNote":""},{"id":12,"name":"The Tomahawk","city":"North Vancouver","region":"BC","country":"CA","lat":49.3163,"lng":-123.0738,"dish":"Burger with bacon, mushroom & cheese","season":1,"episode":4,"url":"https://www.tvmaze.com/episodes/710616/you-gotta-eat-here-1x04-stoneys-bread-company-rock-cod-cafe-the-tomahawk","status":"unverified","statusNote":""},{"id":13,"name":"Buster's Barbecue","city":"Vermilion Bay","region":"ON","country":"CA","lat":49.85,"lng":-93.4,"dish":"Blueberry barbecue sauce","season":1,"episode":5,"url":"https://www.tvmaze.com/episodes/710618/you-gotta-eat-here-1x05-busters-bbq-argo-cafe-magnolias-grill","status":"unverified","statusNote":""},{"id":14,"name":"Argo Cafe","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Grilled cheese & duck confit","season":1,"episode":5,"url":"https://www.tvmaze.com/episodes/710618/you-gotta-eat-here-1x05-busters-bbq-argo-cafe-magnolias-grill","status":"unverified","statusNote":""},{"id":15,"name":"Magnolia's Grill","city":"Lunenburg","region":"NS","country":"CA","lat":44.3766,"lng":-64.3149,"dish":"Fish cakes","season":1,"episode":5,"url":"https://www.tvmaze.com/episodes/710618/you-gotta-eat-here-1x05-busters-bbq-argo-cafe-magnolias-grill","status":"unverified","statusNote":""},{"id":16,"name":"Charlene's Bayside Restaurant","city":"Whycocomagh","region":"NS","country":"CA","lat":45.9667,"lng":-61.1167,"dish":"Bucket of chocolate mousse & brownies","season":1,"episode":6,"url":"https://www.tvmaze.com/episodes/710619/you-gotta-eat-here-1x06-charlenes-bayside-restaurant-tide-and-boar-cafe-prince-alberts-diner","status":"unverified","statusNote":""},{"id":17,"name":"Tide and Boar Gastropub","city":"Moncton","region":"NB","country":"CA","lat":46.0878,"lng":-64.7782,"dish":"Boar poutine & 'Beeramisu'","season":1,"episode":6,"url":"https://www.tvmaze.com/episodes/710619/you-gotta-eat-here-1x06-charlenes-bayside-restaurant-tide-and-boar-cafe-prince-alberts-diner","status":"unverified","statusNote":""},{"id":18,"name":"Prince Albert's Diner","city":"London","region":"ON","country":"CA","lat":42.9849,"lng":-81.2453,"dish":"Bacon & peanut butter quarter-pound burger","season":1,"episode":6,"url":"https://www.tvmaze.com/episodes/710619/you-gotta-eat-here-1x06-charlenes-bayside-restaurant-tide-and-boar-cafe-prince-alberts-diner","status":"unverified","statusNote":""},{"id":19,"name":"Uncle Betty's Diner","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Eggs Benny on homemade donuts","season":1,"episode":7,"url":"https://www.tvmaze.com/episodes/710620/you-gotta-eat-here-1x07-uncle-bettys-diner-the-armview-diner-pagliaccis","status":"unverified","statusNote":""},{"id":20,"name":"The Armview Restaurant","city":"Halifax","region":"NS","country":"CA","lat":44.6488,"lng":-63.5752,"dish":"Fish fries & seafood burgers","season":1,"episode":7,"url":"https://www.tvmaze.com/episodes/710620/you-gotta-eat-here-1x07-uncle-bettys-diner-the-armview-diner-pagliaccis","status":"unverified","statusNote":""},{"id":21,"name":"Pagliacci's","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"New York-style cheesecake","season":1,"episode":7,"url":"https://www.tvmaze.com/episodes/710620/you-gotta-eat-here-1x07-uncle-bettys-diner-the-armview-diner-pagliaccis","status":"unverified","statusNote":""},{"id":22,"name":"Saint John Ale House","city":"Saint John","region":"NB","country":"CA","lat":45.2733,"lng":-66.0633,"dish":"8 lbs lobster + 42 oz prime rib","season":1,"episode":8,"url":"https://www.tvmaze.com/episodes/710621/you-gotta-eat-here-1x08-saint-john-alehouse-philadelphia-kitchen-fraser-park-restaurant","status":"unverified","statusNote":""},{"id":23,"name":"Fraser Park Restaurant","city":"Burnaby","region":"BC","country":"CA","lat":49.2488,"lng":-122.9805,"dish":"German sausages with German flair","season":1,"episode":8,"url":"https://www.tvmaze.com/episodes/710621/you-gotta-eat-here-1x08-saint-john-alehouse-philadelphia-kitchen-fraser-park-restaurant","status":"unverified","statusNote":""},{"id":24,"name":"Philadelphia Kitchen","city":"Orangeville","region":"ON","country":"CA","lat":43.917,"lng":-80.0943,"dish":"10 varieties of Philly cheesesteak","season":1,"episode":8,"url":"https://www.tvmaze.com/episodes/710621/you-gotta-eat-here-1x08-saint-john-alehouse-philadelphia-kitchen-fraser-park-restaurant","status":"unverified","statusNote":""},{"id":25,"name":"D&S Southern Comfort B.B.Q.","city":"Carlsbad Springs","region":"ON","country":"CA","lat":45.3,"lng":-75.4667,"dish":"5.5 lb Determinator Hamburger Challenge","season":1,"episode":9,"url":"https://www.tvmaze.com/episodes/710622/you-gotta-eat-here-1x09-d-s-southern-bbq-deja-bu-bubis-awesome-eats","status":"unverified","statusNote":""},{"id":26,"name":"Deja-BU!","city":"Caraquet","region":"NB","country":"CA","lat":47.7958,"lng":-64.9389,"dish":"Acadian comfort cooking","season":1,"episode":9,"url":"https://www.tvmaze.com/episodes/710622/you-gotta-eat-here-1x09-d-s-southern-bbq-deja-bu-bubis-awesome-eats","status":"unverified","statusNote":""},{"id":27,"name":"Bubi's Awesome Eats","city":"Windsor","region":"ON","country":"CA","lat":42.3149,"lng":-83.0364,"dish":"Diner classics","season":1,"episode":9,"url":"https://www.tvmaze.com/episodes/710622/you-gotta-eat-here-1x09-d-s-southern-bbq-deja-bu-bubis-awesome-eats","status":"unverified","statusNote":""},{"id":28,"name":"Stoneface Dolly's","city":"Ottawa","region":"ON","country":"CA","lat":45.4215,"lng":-75.6972,"dish":"South African bobotie","season":1,"episode":10,"url":"https://www.tvmaze.com/episodes/710623/you-gotta-eat-here-1x10-stoneface-dollys-hadleys-ricks-fish-and-chips-and-seafood-house","status":"unverified","statusNote":""},{"id":29,"name":"Hadley's","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Everything smoked in-house","season":1,"episode":10,"url":"https://www.tvmaze.com/episodes/710623/you-gotta-eat-here-1x10-stoneface-dollys-hadleys-ricks-fish-and-chips-and-seafood-house","status":"unverified","statusNote":""},{"id":30,"name":"Rick's Fish 'N Chips and Seafood House","city":"Prince Edward Island","region":"PE","country":"CA","lat":46.2382,"lng":-63.1311,"dish":"Seafood pizza & Cajun mussels","season":1,"episode":10,"url":"https://www.tvmaze.com/episodes/710623/you-gotta-eat-here-1x10-stoneface-dollys-hadleys-ricks-fish-and-chips-and-seafood-house","status":"unverified","statusNote":""},{"id":31,"name":"Catch 22 Lobster Bar","city":"Moncton","region":"NB","country":"CA","lat":46.0878,"lng":-64.7782,"dish":"Lobster served 22 different ways","season":1,"episode":11,"url":"https://www.tvmaze.com/episodes/710624/you-gotta-eat-here-1x11-catch-22-lobster-bar-chicago-style-pizza-topanga-cafe","status":"unverified","statusNote":""},{"id":32,"name":"Chicago Style Pizza Shack","city":"Hamilton","region":"ON","country":"CA","lat":43.2557,"lng":-79.8711,"dish":"Deep-dish Chicago pizza","season":1,"episode":11,"url":"https://www.tvmaze.com/episodes/710624/you-gotta-eat-here-1x11-catch-22-lobster-bar-chicago-style-pizza-topanga-cafe","status":"unverified","statusNote":""},{"id":33,"name":"Topanga Cafe","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Cal-Mex favourites","season":1,"episode":11,"url":"https://www.tvmaze.com/episodes/710624/you-gotta-eat-here-1x11-catch-22-lobster-bar-chicago-style-pizza-topanga-cafe","status":"unverified","statusNote":""},{"id":34,"name":"Urban Deli","city":"Saint John","region":"NB","country":"CA","lat":45.2733,"lng":-66.0633,"dish":"Comfort-food deli plates","season":1,"episode":12,"url":"https://www.tvmaze.com/episodes/710625/you-gotta-eat-here-1x12-urban-deli-chess-fish-and-chips-reggies-hot-grill","status":"unverified","statusNote":""},{"id":35,"name":"Ches's Famous Fish & Chips","city":"St. John's","region":"NL","country":"CA","lat":47.5615,"lng":-52.7126,"dish":"Newfoundland-famous fish & chips","season":1,"episode":12,"url":"https://www.tvmaze.com/episodes/710625/you-gotta-eat-here-1x12-urban-deli-chess-fish-and-chips-reggies-hot-grill","status":"unverified","statusNote":""},{"id":36,"name":"Reggie's Hot Grill","city":"Peterborough","region":"ON","country":"CA","lat":44.3091,"lng":-78.3197,"dish":"Hot grill comfort food","season":1,"episode":12,"url":"https://www.tvmaze.com/episodes/710625/you-gotta-eat-here-1x12-urban-deli-chess-fish-and-chips-reggies-hot-grill","status":"unverified","statusNote":""},{"id":37,"name":"Elgin Street Diner","city":"Ottawa","region":"ON","country":"CA","lat":45.4215,"lng":-75.6972,"dish":"Classic diner cure-alls","season":1,"episode":13,"url":"https://www.tvmaze.com/episodes/710626/you-gotta-eat-here-1x13-elgin-street-diner-schwartzs-deli-mrs-riches-restaurant","status":"unverified","statusNote":""},{"id":38,"name":"Schwartz's Deli","city":"Montreal","region":"QC","country":"CA","lat":45.5017,"lng":-73.5673,"dish":"Legendary smoked-meat sandwich","season":1,"episode":13,"url":"https://www.tvmaze.com/episodes/710626/you-gotta-eat-here-1x13-elgin-street-diner-schwartzs-deli-mrs-riches-restaurant","status":"open","statusNote":"Still slinging smoked meat on St-Laurent, lines and all."},{"id":39,"name":"Mrs. Riches Restaurant","city":"Nanaimo","region":"BC","country":"CA","lat":49.1659,"lng":-123.9401,"dish":"1 lb Mountain Burger","season":1,"episode":13,"url":"https://www.tvmaze.com/episodes/710626/you-gotta-eat-here-1x13-elgin-street-diner-schwartzs-deli-mrs-riches-restaurant","status":"unverified","statusNote":""},{"id":40,"name":"Boneheads BBQ","city":"Halifax","region":"NS","country":"CA","lat":44.6488,"lng":-63.5752,"dish":"Smoked chicken and poutine","season":1,"episode":14,"url":"https://www.tvmaze.com/episodes/710627/you-gotta-eat-here-1x14-boneheads-the-dam-pub-landmark-cafe","status":"unverified","statusNote":""},{"id":41,"name":"The Dam Pub","city":"Thornbury","region":"ON","country":"CA","lat":44.5667,"lng":-80.45,"dish":"Shepherd's pie","season":1,"episode":14,"url":"https://www.tvmaze.com/episodes/710627/you-gotta-eat-here-1x14-boneheads-the-dam-pub-landmark-cafe","status":"unverified","statusNote":""},{"id":42,"name":"Landmark Cafe","city":"Victoria-by-the-Sea","region":"PE","country":"CA","lat":46.1958,"lng":-63.4942,"dish":"Homemade lasagna","season":1,"episode":14,"url":"https://www.tvmaze.com/episodes/710627/you-gotta-eat-here-1x14-boneheads-the-dam-pub-landmark-cafe","status":"unverified","statusNote":""},{"id":43,"name":"Tallest Poppy","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"Hand-braided challah & Jewish classics","season":1,"episode":15,"url":"https://www.tvmaze.com/episodes/710629/you-gotta-eat-here-1x15-tallest-poppy-cardinal-rule-jrs","status":"unverified","statusNote":""},{"id":44,"name":"Cardinal Rule Restaurant","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Meat-loaf muffins","season":1,"episode":15,"url":"https://www.tvmaze.com/episodes/710629/you-gotta-eat-here-1x15-tallest-poppy-cardinal-rule-jrs","status":"unverified","statusNote":""},{"id":45,"name":"JR's Restaurant","city":"Almonte","region":"ON","country":"CA","lat":45.2261,"lng":-76.1972,"dish":"Spicy meatballs","season":1,"episode":15,"url":"https://www.tvmaze.com/episodes/710629/you-gotta-eat-here-1x15-tallest-poppy-cardinal-rule-jrs","status":"unverified","statusNote":""},{"id":46,"name":"Blondie's","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"9-pound burger","season":1,"episode":16,"url":"https://www.tvmaze.com/episodes/710631/you-gotta-eat-here-1x16-blondies-little-place-neighbours","status":"unverified","statusNote":""},{"id":47,"name":"That Little Place by the Lights","city":"Huntsville","region":"ON","country":"CA","lat":45.3236,"lng":-79.2185,"dish":"Cottage-country comfort food","season":1,"episode":16,"url":"https://www.tvmaze.com/episodes/710631/you-gotta-eat-here-1x16-blondies-little-place-neighbours","status":"unverified","statusNote":""},{"id":48,"name":"Neighbour's Restaurant","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Neighbourhood classics","season":1,"episode":16,"url":"https://www.tvmaze.com/episodes/710631/you-gotta-eat-here-1x16-blondies-little-place-neighbours","status":"unverified","statusNote":""},{"id":49,"name":"Tre Sorelle","city":"Orillia","region":"ON","country":"CA","lat":44.6079,"lng":-79.4187,"dish":"Old-fashioned Italian classics","season":1,"episode":17,"url":"https://www.tvmaze.com/episodes/710632/you-gotta-eat-here-1x17-tre-sorelle-bistro-dansk-water-prince","status":"unverified","statusNote":""},{"id":50,"name":"Bistro Dansk","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"Schnitzel","season":1,"episode":17,"url":"https://www.tvmaze.com/episodes/710632/you-gotta-eat-here-1x17-tre-sorelle-bistro-dansk-water-prince","status":"unverified","statusNote":""},{"id":51,"name":"Water-Prince Corner Shop","city":"Charlottetown","region":"PE","country":"CA","lat":46.2382,"lng":-63.1311,"dish":"Seafood chowder","season":1,"episode":17,"url":"https://www.tvmaze.com/episodes/710632/you-gotta-eat-here-1x17-tre-sorelle-bistro-dansk-water-prince","status":"unverified","statusNote":""},{"id":52,"name":"Urban Diner","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Massive meatloaf breakfast sandwich","season":1,"episode":18,"url":"https://www.tvmaze.com/episodes/710633/you-gotta-eat-here-1x18-urban-diner-fat-city-phils-bbq","status":"unverified","statusNote":""},{"id":53,"name":"Fat City Franks","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Unusual breakfast dishes","season":1,"episode":18,"url":"https://www.tvmaze.com/episodes/710633/you-gotta-eat-here-1x18-urban-diner-fat-city-phils-bbq","status":"unverified","statusNote":""},{"id":54,"name":"Phil's Original BBQ","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Classic BBQ","season":1,"episode":18,"url":"https://www.tvmaze.com/episodes/710633/you-gotta-eat-here-1x18-urban-diner-fat-city-phils-bbq","status":"unverified","statusNote":""},{"id":55,"name":"Red Top Drive-Inn","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"Golden-age diner classics","season":1,"episode":19,"url":"https://www.tvmaze.com/episodes/710634/you-gotta-eat-here-1x19-red-top-diner-deluxe-cafe-polenez","status":"unverified","statusNote":""},{"id":56,"name":"Diner Deluxe","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Retro diner fare","season":1,"episode":19,"url":"https://www.tvmaze.com/episodes/710634/you-gotta-eat-here-1x19-red-top-diner-deluxe-cafe-polenez","status":"unverified","statusNote":""},{"id":57,"name":"Cafe Polonez","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Polish comfort food","season":1,"episode":19,"url":"https://www.tvmaze.com/episodes/710634/you-gotta-eat-here-1x19-red-top-diner-deluxe-cafe-polenez","status":"unverified","statusNote":""},{"id":58,"name":"Boon Burger","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"All-vegan burgers","season":1,"episode":20,"url":"https://www.tvmaze.com/episodes/710635/you-gotta-eat-here-1x20-boon-burger-jelly-modern-donuts-the-musket","status":"unverified","statusNote":""},{"id":59,"name":"Jelly Modern Doughnuts","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Gourmet doughnuts","season":1,"episode":20,"url":"https://www.tvmaze.com/episodes/710635/you-gotta-eat-here-1x20-boon-burger-jelly-modern-donuts-the-musket","status":"unverified","statusNote":""},{"id":60,"name":"The Musket","city":"Etobicoke","region":"ON","country":"CA","lat":43.6205,"lng":-79.5132,"dish":"German eatery","season":1,"episode":20,"url":"https://www.tvmaze.com/episodes/710635/you-gotta-eat-here-1x20-boon-burger-jelly-modern-donuts-the-musket","status":"unverified","statusNote":""},{"id":61,"name":"Evelyn's Memory Lane Cafe","city":"High River","region":"AB","country":"CA","lat":50.5832,"lng":-113.8694,"dish":"Homemade ice cream","season":1,"episode":21,"url":"https://www.tvmaze.com/episodes/710636/you-gotta-eat-here-1x21-evelyns-memory-the-main-dangerous-dans","status":"unverified","statusNote":""},{"id":62,"name":"The Main Deli Steak House","city":"Montreal","region":"QC","country":"CA","lat":45.5017,"lng":-73.5673,"dish":"Smoked meats","season":1,"episode":21,"url":"https://www.tvmaze.com/episodes/710636/you-gotta-eat-here-1x21-evelyns-memory-the-main-dangerous-dans","status":"unverified","statusNote":""},{"id":63,"name":"Dangerous Dan's","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"The Colossal Colon Clogger burger","season":1,"episode":21,"url":"https://www.tvmaze.com/episodes/710636/you-gotta-eat-here-1x21-evelyns-memory-the-main-dangerous-dans","status":"unverified","statusNote":""},{"id":64,"name":"Chuckwagon Cafe","city":"Turner Valley","region":"AB","country":"CA","lat":50.6667,"lng":-114.2667,"dish":"Roadhouse comfort food","season":1,"episode":22,"url":"https://www.tvmaze.com/episodes/710637/you-gotta-eat-here-1x22-chuckwagon-grill-tubby-dog-flapjacks","status":"unverified","statusNote":""},{"id":65,"name":"Tubby Dog","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Loaded hot dogs","season":1,"episode":22,"url":"https://www.tvmaze.com/episodes/710637/you-gotta-eat-here-1x22-chuckwagon-grill-tubby-dog-flapjacks","status":"unverified","statusNote":""},{"id":66,"name":"Flapjack's","city":"Caledon","region":"ON","country":"CA","lat":43.8667,"lng":-79.9667,"dish":"All-day breakfast","season":1,"episode":22,"url":"https://www.tvmaze.com/episodes/710637/you-gotta-eat-here-1x22-chuckwagon-grill-tubby-dog-flapjacks","status":"unverified","statusNote":""},{"id":67,"name":"Chez Claudette","city":"Montreal","region":"QC","country":"CA","lat":45.5017,"lng":-73.5673,"dish":"Hand-prepared Quebecois comfort food","season":1,"episode":23,"url":"https://www.tvmaze.com/episodes/710639/you-gotta-eat-here-1x23-coastal-waters-tunnel-bbq-chez-claudette","status":"unverified","statusNote":""},{"id":68,"name":"Tunnel Bar-B-Q","city":"Windsor","region":"ON","country":"CA","lat":42.3149,"lng":-83.0364,"dish":"Smoked BBQ","season":1,"episode":23,"url":"https://www.tvmaze.com/episodes/710639/you-gotta-eat-here-1x23-coastal-waters-tunnel-bbq-chez-claudette","status":"unverified","statusNote":""},{"id":69,"name":"Coastal Waters Restaurant","city":"Ingonish","region":"NS","country":"CA","lat":46.6833,"lng":-60.3833,"dish":"Cape Breton coastal cooking","season":1,"episode":23,"url":"https://www.tvmaze.com/episodes/710639/you-gotta-eat-here-1x23-coastal-waters-tunnel-bbq-chez-claudette","status":"unverified","statusNote":""},{"id":70,"name":"Baffo's Pizza","city":"Bolton","region":"ON","country":"CA","lat":43.8833,"lng":-79.7333,"dish":"Old-school Italian pizza","season":1,"episode":24,"url":"https://www.tvmaze.com/episodes/710641/you-gotta-eat-here-1x24-baffos-pizza-tres-carnales-taqueria-new-glasgow-lobster-suppers","status":"unverified","statusNote":""},{"id":71,"name":"Tres Carnales Taqueria","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Not-Tex-Mex tacos","season":1,"episode":24,"url":"https://www.tvmaze.com/episodes/710641/you-gotta-eat-here-1x24-baffos-pizza-tres-carnales-taqueria-new-glasgow-lobster-suppers","status":"unverified","statusNote":""},{"id":72,"name":"New Glasgow Lobster Suppers","city":"New Glasgow","region":"PE","country":"CA","lat":46.4167,"lng":-63.3833,"dish":"All-you-can-eat lobster supper","season":1,"episode":24,"url":"https://www.tvmaze.com/episodes/710641/you-gotta-eat-here-1x24-baffos-pizza-tres-carnales-taqueria-new-glasgow-lobster-suppers","status":"unverified","statusNote":""},{"id":73,"name":"Pfanntastic Pannenkoek Haus","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Dutch pancakes","season":1,"episode":25,"url":"https://www.tvmaze.com/episodes/710642/you-gotta-eat-here-1x25-highland-kitchen-pfanntastic-pannenkoek-haus-joe-fetas","status":"unverified","statusNote":""},{"id":74,"name":"Highlands Kitchen","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Ukrainian fare","season":1,"episode":25,"url":"https://www.tvmaze.com/episodes/710642/you-gotta-eat-here-1x25-highland-kitchen-pfanntastic-pannenkoek-haus-joe-fetas","status":"unverified","statusNote":""},{"id":75,"name":"Joe Feta's","city":"St. Catharines","region":"ON","country":"CA","lat":43.1594,"lng":-79.2469,"dish":"Greek favourites","season":1,"episode":25,"url":"https://www.tvmaze.com/episodes/710642/you-gotta-eat-here-1x25-highland-kitchen-pfanntastic-pannenkoek-haus-joe-fetas","status":"unverified","statusNote":""},{"id":76,"name":"Sugar Bowl","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Cinnamon buns","season":1,"episode":26,"url":"https://www.tvmaze.com/episodes/710645/you-gotta-eat-here-1x26-sugarbowl-the-grilled-cheese-shish-kabob-hut","status":"unverified","statusNote":""},{"id":77,"name":"The Grilled Cheese","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Kensington Market grilled cheese","season":1,"episode":26,"url":"https://www.tvmaze.com/episodes/710645/you-gotta-eat-here-1x26-sugarbowl-the-grilled-cheese-shish-kabob-hut","status":"unverified","statusNote":""},{"id":78,"name":"Shish-Kabob Hut","city":"Peterborough","region":"ON","country":"CA","lat":44.3091,"lng":-78.3197,"dish":"Skewers & kabobs","season":1,"episode":26,"url":"https://www.tvmaze.com/episodes/710645/you-gotta-eat-here-1x26-sugarbowl-the-grilled-cheese-shish-kabob-hut","status":"unverified","statusNote":""},{"id":79,"name":"Pie","city":"Barrie","region":"ON","country":"CA","lat":44.3894,"lng":-79.6903,"dish":"Unique specialty pizzas","season":2,"episode":1,"url":"https://www.tvmaze.com/episodes/710647/you-gotta-eat-here-2x01-pie-burger-barn-smoken-bones-cookshack","status":"unverified","statusNote":""},{"id":80,"name":"Smoken Bones Cookshack","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"Barbecue","season":2,"episode":1,"url":"https://www.tvmaze.com/episodes/710647/you-gotta-eat-here-2x01-pie-burger-barn-smoken-bones-cookshack","status":"unverified","statusNote":""},{"id":81,"name":"The Burger Barn","city":"Ohsweken","region":"ON","country":"CA","lat":43.0833,"lng":-80.1167,"dish":"Local burger joint","season":2,"episode":1,"url":"https://www.tvmaze.com/episodes/710647/you-gotta-eat-here-2x01-pie-burger-barn-smoken-bones-cookshack","status":"unverified","statusNote":""},{"id":82,"name":"Black Forest Inn","city":"Hamilton","region":"ON","country":"CA","lat":43.2557,"lng":-79.8711,"dish":"Hand-pounded schnitzel","season":2,"episode":2,"url":"https://www.tvmaze.com/episodes/710648/you-gotta-eat-here-2x02-black-forest-inn-fiesta-mexicana-restaurante-y-cantina-the-churchill-arms","status":"unverified","statusNote":""},{"id":83,"name":"Fiesta Mexicana Restaurante y Cantina","city":"Kamloops","region":"BC","country":"CA","lat":50.6745,"lng":-120.3273,"dish":"Traditional Mexican food","season":2,"episode":2,"url":"https://www.tvmaze.com/episodes/710648/you-gotta-eat-here-2x02-black-forest-inn-fiesta-mexicana-restaurante-y-cantina-the-churchill-arms","status":"unverified","statusNote":""},{"id":84,"name":"The Churchill Arms","city":"Prince Edward Island","region":"PE","country":"CA","lat":46.2382,"lng":-63.1311,"dish":"British pub fare","season":2,"episode":2,"url":"https://www.tvmaze.com/episodes/710648/you-gotta-eat-here-2x02-black-forest-inn-fiesta-mexicana-restaurante-y-cantina-the-churchill-arms","status":"unverified","statusNote":""},{"id":85,"name":"Edgar","city":"Gatineau","region":"QC","country":"CA","lat":45.4765,"lng":-75.7013,"dish":"All-day brunch","season":2,"episode":3,"url":"https://www.tvmaze.com/episodes/710649/you-gotta-eat-here-2x03-edgar-dr-laffa-dianas-gourmet-pizza","status":"unverified","statusNote":""},{"id":86,"name":"Dr. Laffa","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Israeli food","season":2,"episode":3,"url":"https://www.tvmaze.com/episodes/710649/you-gotta-eat-here-2x03-edgar-dr-laffa-dianas-gourmet-pizza","status":"unverified","statusNote":""},{"id":87,"name":"Diana's Gourmet Pizza","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"Gourmet pizza","season":2,"episode":3,"url":"https://www.tvmaze.com/episodes/710649/you-gotta-eat-here-2x03-edgar-dr-laffa-dianas-gourmet-pizza","status":"unverified","statusNote":""},{"id":88,"name":"Caplansky's Delicatessen","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"House-smoked meat","season":2,"episode":4,"url":"https://www.tvmaze.com/episodes/710650/you-gotta-eat-here-2x04-caplanskys-deli-wildside-grill-miura-waffle-milk-bar","status":"closed","statusNote":"The College St. location (the one filmed) closed for good in 2018. Brand lives on as a mustard/condiment line."},{"id":89,"name":"Wildside Grill","city":"Tofino","region":"BC","country":"CA","lat":49.153,"lng":-125.9066,"dish":"Fresh-off-the-boat seafood","season":2,"episode":4,"url":"https://www.tvmaze.com/episodes/710650/you-gotta-eat-here-2x04-caplanskys-deli-wildside-grill-miura-waffle-milk-bar","status":"unverified","statusNote":""},{"id":90,"name":"Miura Waffle Milk Bar","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Asian-style waffles","season":2,"episode":4,"url":"https://www.tvmaze.com/episodes/710650/you-gotta-eat-here-2x04-caplanskys-deli-wildside-grill-miura-waffle-milk-bar","status":"unverified","statusNote":""},{"id":91,"name":"The Reef","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Poutine with a Caribbean twist","season":2,"episode":5,"url":"https://www.tvmaze.com/episodes/710652/you-gotta-eat-here-2x05-the-reef-smokin-georges-bbq-restaurant-and-takeout-mickeys-dragon-pizza","status":"unverified","statusNote":""},{"id":92,"name":"Smokin' George's BBQ","city":"Nanaimo","region":"BC","country":"CA","lat":49.1659,"lng":-123.9401,"dish":"Barbecue and takeout","season":2,"episode":5,"url":"https://www.tvmaze.com/episodes/710652/you-gotta-eat-here-2x05-the-reef-smokin-georges-bbq-restaurant-and-takeout-mickeys-dragon-pizza","status":"unverified","statusNote":""},{"id":93,"name":"Mickey's Dragon Pizza","city":"Mississauga","region":"ON","country":"CA","lat":43.589,"lng":-79.6441,"dish":"Pizza","season":2,"episode":5,"url":"https://www.tvmaze.com/episodes/710652/you-gotta-eat-here-2x05-the-reef-smokin-georges-bbq-restaurant-and-takeout-mickeys-dragon-pizza","status":"unverified","statusNote":""},{"id":94,"name":"Tess","city":"Halifax","region":"NS","country":"CA","lat":44.6488,"lng":-63.5752,"dish":"Croque-madame","season":2,"episode":6,"url":"https://www.tvmaze.com/episodes/710654/you-gotta-eat-here-2x06-tess-tibetan-kitchen-cafe-highlevel-diner","status":"unverified","statusNote":""},{"id":95,"name":"Tibetan Kitchen Cafe","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"Hand-folded samosas","season":2,"episode":6,"url":"https://www.tvmaze.com/episodes/710654/you-gotta-eat-here-2x06-tess-tibetan-kitchen-cafe-highlevel-diner","status":"unverified","statusNote":""},{"id":96,"name":"Highlevel Diner","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Cinnamon buns","season":2,"episode":6,"url":"https://www.tvmaze.com/episodes/710654/you-gotta-eat-here-2x06-tess-tibetan-kitchen-cafe-highlevel-diner","status":"unverified","statusNote":""},{"id":97,"name":"Klondike Rib and Salmon BBQ","city":"Whitehorse","region":"YT","country":"CA","lat":60.7212,"lng":-135.0568,"dish":"Yukon rib & salmon BBQ","season":2,"episode":7,"url":"https://www.tvmaze.com/episodes/710655/you-gotta-eat-here-2x07-klondike-rib-and-salmon-colettes-place-sofra","status":"unverified","statusNote":""},{"id":98,"name":"Colette's Family Restaurant","city":"Glace Bay","region":"NS","country":"CA","lat":46.1969,"lng":-59.9572,"dish":"Christmas-dinner poutine","season":2,"episode":7,"url":"https://www.tvmaze.com/episodes/710655/you-gotta-eat-here-2x07-klondike-rib-and-salmon-colettes-place-sofra","status":"unverified","statusNote":""},{"id":99,"name":"Sofra","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Kebabs cooked on swords","season":2,"episode":7,"url":"https://www.tvmaze.com/episodes/710655/you-gotta-eat-here-2x07-klondike-rib-and-salmon-colettes-place-sofra","status":"unverified","statusNote":""},{"id":100,"name":"The Burger's Priest","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Cult-favourite smashburgers","season":2,"episode":8,"url":"https://www.tvmaze.com/episodes/710657/you-gotta-eat-here-2x08-the-burgers-priest-bread-bar-ee-burritos","status":"unverified","statusNote":""},{"id":101,"name":"Bread Bar","city":"Hamilton","region":"ON","country":"CA","lat":43.2557,"lng":-79.8711,"dish":"House pizza crust","season":2,"episode":8,"url":"https://www.tvmaze.com/episodes/710657/you-gotta-eat-here-2x08-the-burgers-priest-bread-bar-ee-burritos","status":"unverified","statusNote":""},{"id":102,"name":"EE Burritos Restaurant","city":"Saskatoon","region":"SK","country":"CA","lat":52.1332,"lng":-106.67,"dish":"Salvadorian & Mexican mashup","season":2,"episode":8,"url":"https://www.tvmaze.com/episodes/710657/you-gotta-eat-here-2x08-the-burgers-priest-bread-bar-ee-burritos","status":"unverified","statusNote":""},{"id":103,"name":"Flavor19","city":"Sydney","region":"NS","country":"CA","lat":46.1368,"lng":-60.1942,"dish":"Golf-course fine dining","season":2,"episode":9,"url":"https://www.tvmaze.com/episodes/710659/you-gotta-eat-here-2x09-flavor19-louisiana-purchase-rocket-bakery-and-fresh-food","status":"unverified","statusNote":""},{"id":104,"name":"Louisiana Purchase","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Creole dishes","season":2,"episode":9,"url":"https://www.tvmaze.com/episodes/710659/you-gotta-eat-here-2x09-flavor19-louisiana-purchase-rocket-bakery-and-fresh-food","status":"unverified","statusNote":""},{"id":105,"name":"Rocket Bakery and Fresh Food","city":"St. John's","region":"NL","country":"CA","lat":47.5615,"lng":-52.7126,"dish":"Bakery pastries","season":2,"episode":9,"url":"https://www.tvmaze.com/episodes/710659/you-gotta-eat-here-2x09-flavor19-louisiana-purchase-rocket-bakery-and-fresh-food","status":"unverified","statusNote":""},{"id":106,"name":"Shine Cafe","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"Scottish-owned cafe fare","season":2,"episode":10,"url":"https://www.tvmaze.com/episodes/710660/you-gotta-eat-here-2x10-shine-cafe-banh-mi-boys-smoke-spice-southern-barbeque","status":"unverified","statusNote":""},{"id":107,"name":"Banh Mi Boys","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Vietnamese-style sandwiches","season":2,"episode":10,"url":"https://www.tvmaze.com/episodes/710660/you-gotta-eat-here-2x10-shine-cafe-banh-mi-boys-smoke-spice-southern-barbeque","status":"unverified","statusNote":""},{"id":108,"name":"Smoke & Spice Southern Barbeque","city":"Ontario","region":"ON","country":"CA","lat":43.7,"lng":-79.42,"dish":"Southern-style cooking","season":2,"episode":10,"url":"https://www.tvmaze.com/episodes/710660/you-gotta-eat-here-2x10-shine-cafe-banh-mi-boys-smoke-spice-southern-barbeque","status":"unverified","statusNote":""},{"id":109,"name":"Murray Street Kitchen","city":"Ottawa","region":"ON","country":"CA","lat":45.4215,"lng":-75.6972,"dish":"Potato-less poutine with duck confit","season":2,"episode":11,"url":"https://www.tvmaze.com/episodes/710661/you-gotta-eat-here-2x11-murray-street-kitchen-fanny-chadwicks-antoinettes","status":"unverified","statusNote":""},{"id":110,"name":"Fanny Chadwick's","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Neighbourhood bistro fare","season":2,"episode":11,"url":"https://www.tvmaze.com/episodes/710661/you-gotta-eat-here-2x11-murray-street-kitchen-fanny-chadwicks-antoinettes","status":"unverified","statusNote":""},{"id":111,"name":"Antoinette's","city":"Yukon","region":"YT","country":"CA","lat":60.7212,"lng":-135.0568,"dish":"Caribbean food in the Yukon","season":2,"episode":11,"url":"https://www.tvmaze.com/episodes/710661/you-gotta-eat-here-2x11-murray-street-kitchen-fanny-chadwicks-antoinettes","status":"unverified","statusNote":""},{"id":112,"name":"The American Cheesesteak Company","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Authentic Philly cheesesteak","season":2,"episode":12,"url":"https://www.tvmaze.com/episodes/710662/you-gotta-eat-here-2x12-the-american-cheesesteak-soulyve-murrays-sandwich-emporium","status":"unverified","statusNote":""},{"id":113,"name":"Soulyve","city":"Orangeville","region":"ON","country":"CA","lat":43.917,"lng":-80.0943,"dish":"Reggae wrap","season":2,"episode":12,"url":"https://www.tvmaze.com/episodes/710662/you-gotta-eat-here-2x12-the-american-cheesesteak-soulyve-murrays-sandwich-emporium","status":"unverified","statusNote":""},{"id":114,"name":"Murray's Sandwich Emporium","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Stacked sandwiches","season":2,"episode":12,"url":"https://www.tvmaze.com/episodes/710662/you-gotta-eat-here-2x12-the-american-cheesesteak-soulyve-murrays-sandwich-emporium","status":"unverified","statusNote":""},{"id":115,"name":"Holy Grill","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Smashbrowns & bennies","season":2,"episode":13,"url":"https://www.tvmaze.com/episodes/710663/you-gotta-eat-here-2x13-holy-grill-the-flying-spatula-chewiest-steam","status":"unverified","statusNote":""},{"id":116,"name":"Chewies Steam and Oyster Bar","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Seafood brunch","season":2,"episode":13,"url":"https://www.tvmaze.com/episodes/710663/you-gotta-eat-here-2x13-holy-grill-the-flying-spatula-chewiest-steam","status":"unverified","statusNote":""},{"id":117,"name":"The Flying Spatula Diner","city":"Flesherton","region":"ON","country":"CA","lat":44.2667,"lng":-80.5333,"dish":"Classic truck-stop diner food","season":2,"episode":13,"url":"https://www.tvmaze.com/episodes/710663/you-gotta-eat-here-2x13-holy-grill-the-flying-spatula-chewiest-steam","status":"unverified","statusNote":""},{"id":118,"name":"Chino Locos","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Noodle-filled burritos","season":2,"episode":14,"url":"https://www.tvmaze.com/episodes/710664/you-gotta-eat-here-2x14-chino-locos-memphis-fire-barbeque-company-deja-vu-cafe","status":"unverified","statusNote":""},{"id":119,"name":"Memphis Fire Barbeque Company","city":"Winona","region":"ON","country":"CA","lat":43.2167,"lng":-79.65,"dish":"Memphis-style smoked meat","season":2,"episode":14,"url":"https://www.tvmaze.com/episodes/710664/you-gotta-eat-here-2x14-chino-locos-memphis-fire-barbeque-company-deja-vu-cafe","status":"unverified","statusNote":""},{"id":120,"name":"Deja Vu Cafe","city":"Moose Jaw","region":"SK","country":"CA","lat":50.3933,"lng":-105.5519,"dish":"74 dipping sauces & deep-fried fruit","season":2,"episode":14,"url":"https://www.tvmaze.com/episodes/710664/you-gotta-eat-here-2x14-chino-locos-memphis-fire-barbeque-company-deja-vu-cafe","status":"unverified","statusNote":""},{"id":121,"name":"Via Tevere Pizzeria","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Flavours of Naples","season":2,"episode":15,"url":"https://www.tvmaze.com/episodes/710665/you-gotta-eat-here-2x15-via-tevere-pizzeria-the-crepe-house-hilltop-diner","status":"unverified","statusNote":""},{"id":122,"name":"Hilltop Diner","city":"Langley","region":"BC","country":"CA","lat":49.1042,"lng":-122.6604,"dish":"Comfort food since the 1940s","season":2,"episode":15,"url":"https://www.tvmaze.com/episodes/710665/you-gotta-eat-here-2x15-via-tevere-pizzeria-the-crepe-house-hilltop-diner","status":"unverified","statusNote":""},{"id":123,"name":"The Crepe House","city":"Port Dover","region":"ON","country":"CA","lat":42.7833,"lng":-80.2,"dish":"Sweet & savoury crepes","season":2,"episode":15,"url":"https://www.tvmaze.com/episodes/710665/you-gotta-eat-here-2x15-via-tevere-pizzeria-the-crepe-house-hilltop-diner","status":"unverified","statusNote":""},{"id":124,"name":"Black Skirt","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Spaghetti","season":2,"episode":16,"url":"https://www.tvmaze.com/episodes/710666/you-gotta-eat-here-2x16-black-skirt-lavenue-el-caminos","status":"unverified","statusNote":""},{"id":125,"name":"L'Avenue","city":"Montreal","region":"QC","country":"CA","lat":45.5017,"lng":-73.5673,"dish":"Brunch","season":2,"episode":16,"url":"https://www.tvmaze.com/episodes/710666/you-gotta-eat-here-2x16-black-skirt-lavenue-el-caminos","status":"unverified","statusNote":""},{"id":126,"name":"El Camino's","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Latin cuisine","season":2,"episode":16,"url":"https://www.tvmaze.com/episodes/710666/you-gotta-eat-here-2x16-black-skirt-lavenue-el-caminos","status":"unverified","statusNote":""},{"id":127,"name":"The Bungalow","city":"London","region":"ON","country":"CA","lat":42.9849,"lng":-81.2453,"dish":"Cozy comfort food","season":2,"episode":17,"url":"https://www.tvmaze.com/episodes/710667/you-gotta-eat-here-2x17-the-bungalow-the-rumpus-room-big-fish","status":"unverified","statusNote":""},{"id":128,"name":"The Rumpus Room","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Waffle burgers & 'ants on a log'","season":2,"episode":17,"url":"https://www.tvmaze.com/episodes/710667/you-gotta-eat-here-2x17-the-bungalow-the-rumpus-room-big-fish","status":"unverified","statusNote":""},{"id":129,"name":"Big Fish","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Fresh seafood","season":2,"episode":17,"url":"https://www.tvmaze.com/episodes/710667/you-gotta-eat-here-2x17-the-bungalow-the-rumpus-room-big-fish","status":"unverified","statusNote":""},{"id":130,"name":"Kawaii Crepe","city":"Winnipeg","region":"MB","country":"CA","lat":49.8951,"lng":-97.1384,"dish":"Japanese-style crepes","season":2,"episode":18,"url":"https://www.tvmaze.com/episodes/710668/you-gotta-eat-here-2x18-kawaii-crepe-argyle-street-grill-skinnytato","status":"unverified","statusNote":""},{"id":131,"name":"Argyle Street Grill","city":"Caledonia","region":"ON","country":"CA","lat":43.0717,"lng":-79.9522,"dish":"Chicken & ribs","season":2,"episode":18,"url":"https://www.tvmaze.com/episodes/710668/you-gotta-eat-here-2x18-kawaii-crepe-argyle-street-grill-skinnytato","status":"unverified","statusNote":""},{"id":132,"name":"Skinnytato","city":"Victoria","region":"BC","country":"CA","lat":48.4284,"lng":-123.3656,"dish":"Polish cuisine","season":2,"episode":18,"url":"https://www.tvmaze.com/episodes/710668/you-gotta-eat-here-2x18-kawaii-crepe-argyle-street-grill-skinnytato","status":"unverified","statusNote":""},{"id":133,"name":"Boxwood Cafe","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Rotisserie cafe","season":2,"episode":19,"url":"https://www.tvmaze.com/episodes/710669/you-gotta-eat-here-2x19-boxwood-cafe-belgian-fries-smittys-oyster-bar","status":"unverified","statusNote":""},{"id":134,"name":"Belgian Fries","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Belgian-style fries","season":2,"episode":19,"url":"https://www.tvmaze.com/episodes/710669/you-gotta-eat-here-2x19-boxwood-cafe-belgian-fries-smittys-oyster-bar","status":"unverified","statusNote":""},{"id":135,"name":"Smitty's Oyster Bar","city":"British Columbia","region":"BC","country":"CA","lat":53.7267,"lng":-127.6476,"dish":"Fresh seafood","season":2,"episode":19,"url":"https://www.tvmaze.com/episodes/710669/you-gotta-eat-here-2x19-boxwood-cafe-belgian-fries-smittys-oyster-bar","status":"unverified","statusNote":""},{"id":136,"name":"Kekuli Cafe","city":"British Columbia","region":"BC","country":"CA","lat":53.7267,"lng":-127.6476,"dish":"Bannock specialities","season":2,"episode":20,"url":"https://www.tvmaze.com/episodes/710670/you-gotta-eat-here-2x20-kekuli-cafe-big-ts-bbq-and-smokehouse-pressed","status":"unverified","statusNote":""},{"id":137,"name":"Big T's BBQ and Smokehouse","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"Smokehouse BBQ","season":2,"episode":20,"url":"https://www.tvmaze.com/episodes/710670/you-gotta-eat-here-2x20-kekuli-cafe-big-ts-bbq-and-smokehouse-pressed","status":"unverified","statusNote":""},{"id":138,"name":"Pressed","city":"Ottawa","region":"ON","country":"CA","lat":45.4215,"lng":-75.6972,"dish":"Waffles & sandwiches","season":2,"episode":20,"url":"https://www.tvmaze.com/episodes/710670/you-gotta-eat-here-2x20-kekuli-cafe-big-ts-bbq-and-smokehouse-pressed","status":"unverified","statusNote":""},{"id":139,"name":"That Italian Place","city":"Brampton","region":"ON","country":"CA","lat":43.7315,"lng":-79.7624,"dish":"7.5 lb Big Mouth Challenge stromboli","season":2,"episode":21,"url":"https://www.tvmaze.com/episodes/710671/you-gotta-eat-here-2x21-that-italian-place-barque-la-taqueria-taco-shop","status":"unverified","statusNote":""},{"id":140,"name":"Barque","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"BBQ brunch","season":2,"episode":21,"url":"https://www.tvmaze.com/episodes/710671/you-gotta-eat-here-2x21-that-italian-place-barque-la-taqueria-taco-shop","status":"unverified","statusNote":""},{"id":141,"name":"La Taqueria Taco Shop","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Authentic Mexican tacos","season":2,"episode":21,"url":"https://www.tvmaze.com/episodes/710671/you-gotta-eat-here-2x21-that-italian-place-barque-la-taqueria-taco-shop","status":"unverified","statusNote":""},{"id":142,"name":"CheeseCurds Gourmet Burgers & Poutinerie","city":"Dartmouth","region":"NS","country":"CA","lat":44.6658,"lng":-63.5669,"dish":"The 'CC Porker' burger","season":2,"episode":22,"url":"https://www.tvmaze.com/episodes/710672/you-gotta-eat-here-2x22-cheesecurds-gourmet-burgers-and-poutinerie-bernie-and-the-boys-wallflower-modern-diner","status":"unverified","statusNote":""},{"id":143,"name":"Wallflower Modern Diner","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"Modern diner classics","season":2,"episode":22,"url":"https://www.tvmaze.com/episodes/710672/you-gotta-eat-here-2x22-cheesecurds-gourmet-burgers-and-poutinerie-bernie-and-the-boys-wallflower-modern-diner","status":"unverified","statusNote":""},{"id":144,"name":"Bernie and the Boys Bistro","city":"Drumheller","region":"AB","country":"CA","lat":51.4624,"lng":-112.715,"dish":"Hearty bistro plates","season":2,"episode":22,"url":"https://www.tvmaze.com/episodes/710672/you-gotta-eat-here-2x22-cheesecurds-gourmet-burgers-and-poutinerie-bernie-and-the-boys-wallflower-modern-diner","status":"unverified","statusNote":""},{"id":145,"name":"Smoque Shack","city":"Ottawa","region":"ON","country":"CA","lat":45.4215,"lng":-75.6972,"dish":"Jerk BBQ","season":2,"episode":23,"url":"https://www.tvmaze.com/episodes/710673/you-gotta-eat-here-2x23-smoque-shack-slickity-jims-chat-n-chew-boogies-burgers","status":"unverified","statusNote":""},{"id":146,"name":"Slickity Jim's Chat n' Chew","city":"Vancouver","region":"BC","country":"CA","lat":49.2827,"lng":-123.1207,"dish":"The 'Abstract Notion'","season":2,"episode":23,"url":"https://www.tvmaze.com/episodes/710673/you-gotta-eat-here-2x23-smoque-shack-slickity-jims-chat-n-chew-boogies-burgers","status":"unverified","statusNote":""},{"id":147,"name":"Boogie's Burgers","city":"Calgary","region":"AB","country":"CA","lat":51.0447,"lng":-114.0719,"dish":"4-patty burger with bacon & corn dog","season":2,"episode":23,"url":"https://www.tvmaze.com/episodes/710673/you-gotta-eat-here-2x23-smoque-shack-slickity-jims-chat-n-chew-boogies-burgers","status":"unverified","statusNote":""},{"id":148,"name":"The Hogtown Vegan","city":"Toronto","region":"ON","country":"CA","lat":43.6532,"lng":-79.3832,"dish":"Vegan greasy-spoon diner food","season":2,"episode":24,"url":"https://www.tvmaze.com/episodes/710674/you-gotta-eat-here-2x24-the-hogtown-vegan-the-dish-bistro-motor-burger","status":"unverified","statusNote":""},{"id":149,"name":"The Dish Bistro","city":"Edmonton","region":"AB","country":"CA","lat":53.5461,"lng":-113.4938,"dish":"Sweet-potato shepherd's pie","season":2,"episode":24,"url":"https://www.tvmaze.com/episodes/710674/you-gotta-eat-here-2x24-the-hogtown-vegan-the-dish-bistro-motor-burger","status":"unverified","statusNote":""},{"id":150,"name":"Motor Burger","city":"Windsor","region":"ON","country":"CA","lat":42.3149,"lng":-83.0364,"dish":"The 'Lamborghini' & 'Firebird' burgers","season":2,"episode":24,"url":"https://www.tvmaze.com/episodes/710674/you-gotta-eat-here-2x24-the-hogtown-vegan-the-dish-bistro-motor-burger","status":"unverified","statusNote":""},{"id":151,"name":"Burger 55","city":"Penticton","region":"BC","country":"CA","lat":49.4991,"lng":-119.5937,"dish":"Unusual burger toppings","season":2,"episode":25,"url":"https://www.tvmaze.com/episodes/710675/you-gotta-eat-here-2x25-burger-55-the-smokin-buddha-icehouse","status":"unverified","statusNote":""},{"id":152,"name":"The Smokin' Buddha","city":"Port Colborne","region":"ON","country":"CA","lat":42.8833,"lng":-79.25,"dish":"International flavours","season":2,"episode":25,"url":"https://www.tvmaze.com/episodes/710675/you-gotta-eat-here-2x25-burger-55-the-smokin-buddha-icehouse","status":"unverified","statusNote":""},{"id":153,"name":"Icehouse","city":"Montreal","region":"QC","country":"CA","lat":45.5017,"lng":-73.5673,"dish":"Southern-style barbecue","season":2,"episode":25,"url":"https://www.tvmaze.com/episodes/710675/you-gotta-eat-here-2x25-burger-55-the-smokin-buddha-icehouse","status":"unverified","statusNote":""},{"id":154,"name":"The Early Bird","city":"London","region":"ON","country":"CA","lat":42.9849,"lng":-81.2453,"dish":"Turducken club sandwich","season":2,"episode":26,"url":"https://www.tvmaze.com/episodes/710676/you-gotta-eat-here-2x26-the-early-bird-chafes-landing-made-in-mexico-restaurant-and-cantina","status":"unverified","statusNote":""},{"id":155,"name":"Made in Mexico Restaurant and Cantina","city":"Newmarket","region":"ON","country":"CA","lat":44.0592,"lng":-79.4613,"dish":"Nachos rancheros","season":2,"episode":26,"url":"https://www.tvmaze.com/episodes/710676/you-gotta-eat-here-2x26-the-early-bird-chafes-landing-made-in-mexico-restaurant-and-cantina","status":"unverified","statusNote":""},{"id":156,"name":"Chafe's Landing","city":"St. John's","region":"NL","country":"CA","lat":47.5615,"lng":-52.7126,"dish":"Pulled-moose roll","season":2,"episode":26,"url":"https://www.tvmaze.com/episodes/710676/you-gotta-eat-here-2x26-the-early-bird-chafes-landing-made-in-mexico-restaurant-and-cantina","status":"unverified","statusNote":""}]</script>
+<script>
+  const DATA = JSON.parse(document.getElementById('dataJson').textContent);
+
+  const STATUS_META = {
+    open:       { label: 'Open',      cls: 'is-open',    pin: '#3F7A4E' },
+    closed:     { label: 'Closed',    cls: 'is-closed',  pin: '#8a5a4a' },
+    changed:    { label: 'Moved',     cls: 'is-changed', pin: '#B5791F' },
+    unverified: { label: '',          cls: '',           pin: '#C8391E' },
+  };
+
+  // ---- stats ----
+  document.getElementById('statStops').textContent = DATA.length;
+  document.getElementById('statCities').textContent = new Set(DATA.map(d => d.city + '|' + d.region)).size;
+  document.getElementById('statOpen').textContent = DATA.filter(d => d.status === 'open').length;
+
+  // ---- status filter row ----
+  let statusFilter = 'all';
+  const FILTERS = [
+    { key: 'all',        label: 'All' },
+    { key: 'open',       label: 'Confirmed Open' },
+    { key: 'closed',     label: 'Closed' },
+    { key: 'changed',    label: 'Moved' },
+    { key: 'unverified', label: 'Not Checked Yet' },
+  ];
+  function filterCount(key){
+    if (key === 'all') return DATA.length;
+    return DATA.filter(d => d.status === key).length;
+  }
+  function renderFilterRow(){
+    const row = document.getElementById('filterRow');
+    row.innerHTML = FILTERS.map(f => `
+      <button class="filter-pill" data-key="${f.key}" data-active="${statusFilter===f.key}">
+        ${f.label}<span class="count">${filterCount(f.key)}</span>
+      </button>
+    `).join('');
+    row.querySelectorAll('.filter-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        statusFilter = btn.dataset.key;
+        renderFilterRow();
+        applyFilter(document.getElementById('searchInput').value);
+      });
+    });
+  }
+
+  // ---- jitter overlapping coordinates so same-city pins fan out ----
+  const groups = {};
+  DATA.forEach(d => {
+    const key = d.lat + ',' + d.lng;
+    (groups[key] = groups[key] || []).push(d);
+  });
+  Object.values(groups).forEach(group => {
+    const n = group.length;
+    if (n <= 1) { group[0]._jlat = group[0].lat; group[0]._jlng = group[0].lng; return; }
+    const radius = 0.012 + Math.min(n, 12) * 0.0016;
+    group.forEach((d, i) => {
+      const angle = (i / n) * Math.PI * 2;
+      d._jlat = d.lat + Math.sin(angle) * radius;
+      d._jlng = d.lng + Math.cos(angle) * radius * 1.4; // stretch a bit for longitude compression
+    });
+  });
+
+  // ---- map setup ----
+  const map = L.map('map', { scrollWheelZoom: true }).setView([56, -96], 3);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 18
+  }).addTo(map);
+
+  function pinIcon(status){
+    const color = (STATUS_META[status] || STATUS_META.unverified).pin;
+    return L.divIcon({ className: '', html: `<div class="pin-dot" style="background:${color}"></div>`, iconSize: [16,16], iconAnchor:[8,8] });
+  }
+
+  let markers = [];
+  const markerById = {};
+
+  function badgeHtml(d){
+    const meta = STATUS_META[d.status] || STATUS_META.unverified;
+    if (!meta.label) return '';
+    return `<span class="status-badge ${meta.cls}">${meta.label}</span><br/>`;
+  }
+
+  function buildPopup(d){
+    const meta = STATUS_META[d.status] || STATUS_META.unverified;
+    const badge = meta.label ? `<b style="color:${meta.pin}">[${meta.label}]</b> ` : '';
+    const note = d.statusNote ? `<br/><span style="opacity:.75;font-size:11.5px;">${d.statusNote}</span>` : '';
+    return `${badge}<b>${d.name}</b><br/>${d.city}, ${d.region}<br/><span style="opacity:.8">${d.dish}</span>${note}<br/>` +
+           `<a class="popup-watch" href="${d.url}" target="_blank" rel="noopener">▶ Watch S${d.season}·E${String(d.episode).padStart(2,'0')}</a>`;
+  }
+
+  function renderMarkers(items){
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    items.forEach(d => {
+      const m = L.marker([d._jlat, d._jlng], { icon: pinIcon(d.status) }).addTo(map);
+      m.bindPopup(buildPopup(d));
+      m.on('click', () => highlightCard(d.id));
+      markers.push(m);
+      markerById[d.id] = m;
+    });
+  }
+
+  function renderList(items){
+    const list = document.getElementById('list');
+    const meta = document.getElementById('resultsMeta');
+    if (items.length === 0){
+      list.innerHTML = '<div class="empty-msg">No stops found for that search — try another city, or check back once more seasons are added.</div>';
+      meta.textContent = '0 results';
+      return;
+    }
+    meta.textContent = (items.length === DATA.length)
+      ? `Showing all ${DATA.length} stops`
+      : `${items.length} stop${items.length===1?'':'s'} found`;
+    list.innerHTML = items.map(d => `
+      <div class="card" id="card-${d.id}" data-id="${d.id}">
+        <div class="stamp">S${d.season}<br/>E${String(d.episode).padStart(2,'0')}</div>
+        <h3>${d.name}</h3>
+        <div class="city-line">${d.city}, ${d.region}</div>
+        ${badgeHtml(d)}
+        <p class="dish">${d.dish}</p>
+        ${d.statusNote ? `<p class="status-note">${d.statusNote}</p>` : ''}
+        <a class="watch" href="${d.url}" target="_blank" rel="noopener">▶ Watch episode</a>
+      </div>
+    `).join('');
+    Array.from(list.querySelectorAll('.card')).forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const id = Number(card.dataset.id);
+        const m = markerById[id];
+        if (m){ map.setView(m.getLatLng(), 7, { animate:true }); m.openPopup(); }
+        highlightCard(id);
+      });
+    });
+  }
+
+  function highlightCard(id){
+    document.querySelectorAll('.card.highlight').forEach(c => c.classList.remove('highlight'));
+    const card = document.getElementById('card-' + id);
+    if (card){
+      card.classList.add('highlight');
+      card.scrollIntoView({ behavior:'smooth', block:'center' });
+    }
+  }
+
+  function applyFilter(query){
+    const q = query.trim().toLowerCase();
+    let items = !q ? DATA : DATA.filter(d =>
+      d.city.toLowerCase().includes(q) ||
+      d.region.toLowerCase().includes(q) ||
+      d.name.toLowerCase().includes(q)
+    );
+    if (statusFilter !== 'all'){
+      items = items.filter(d => d.status === statusFilter);
+    }
+    renderList(items);
+    renderMarkers(items);
+    if (items.length && (q || statusFilter !== 'all')){
+      const group = L.featureGroup(markers);
+      map.fitBounds(group.getBounds().pad(0.3));
+    } else if (!q && statusFilter === 'all'){
+      map.setView([56, -96], 3);
+    }
+  }
+
+  document.getElementById('searchInput').addEventListener('input', e => applyFilter(e.target.value));
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    statusFilter = 'all';
+    renderFilterRow();
+    applyFilter('');
+  });
+
+  renderFilterRow();
+  applyFilter('');
+</script>
+</body>
+</html>
