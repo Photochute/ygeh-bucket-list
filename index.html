@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>You Gotta Eat Here — My Bucket List</title>
+<title>John Catucci — My Food Bucket List</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -229,6 +229,50 @@
     background:var(--ink); color:var(--paper-card);
   }
   .filter-pill .count{ opacity:0.7; margin-left:4px; }
+
+  /* ---------- HOST BIO ---------- */
+  .host-card{
+    display:flex; gap:18px; align-items:flex-start;
+    background:var(--paper-card);
+    border:2px solid var(--ink);
+    border-radius:14px;
+    padding:18px;
+    margin:0 0 20px;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .host-avatar{ flex:0 0 96px; width:96px; height:96px; }
+  .host-avatar svg{ width:100%; height:100%; }
+  .host-body{ flex:1; min-width:0; }
+  .host-body h2{
+    font-family:'Alfa Slab One', serif;
+    font-size:clamp(20px,3.4vw,26px);
+    color:var(--ink);
+    margin:0 0 2px;
+  }
+  .host-body .host-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ketchup-dark); margin:0 0 10px;
+  }
+  .host-body p{
+    font-size:13.5px; line-height:1.55; color:var(--charcoal); margin:0 0 10px;
+  }
+  .host-facts{
+    display:flex; flex-wrap:wrap; gap:8px;
+    list-style:none; padding:0; margin:10px 0 0;
+  }
+  .host-facts li{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px; letter-spacing:.03em;
+    background:rgba(31,58,95,0.07);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:5px 11px;
+    color:var(--ink);
+  }
+  @media (max-width:520px){
+    .host-card{ flex-direction:column; align-items:center; text-align:center; }
+  }
   .card .dish{
     font-size:13.5px; color:var(--charcoal); opacity:0.88;
     margin:0 0 10px; line-height:1.4;
@@ -272,17 +316,48 @@
 <div class="wrap">
 
   <header class="hero">
-    <div class="route-badge">📍 Season 1 &amp; 2 · Food Network Canada</div>
-    <h1 class="title">YOU GOTTA<br/>EAT HERE
-      <span class="sub">— MY BUCKET LIST —</span>
+    <div class="route-badge">📍 Inspired by his Food Network Canada road trips</div>
+    <h1 class="title">JOHN CATUCCI
+      <span class="sub">— MY FOOD BUCKET LIST —</span>
     </h1>
-    <p class="hero-tagline">Every greasy spoon, smokehouse and 9‑lb burger John Catucci hit on the show — mapped out so I can actually go eat there.</p>
+    <p class="hero-tagline">Every greasy spoon, smokehouse and 9‑lb burger he's tracked down on the road — mapped out so I can actually go eat there.</p>
     <div class="tally-row">
       <div class="tally"><span class="num" id="statStops">0</span><span class="lbl">Stops</span></div>
       <div class="tally"><span class="num" id="statCities">0</span><span class="lbl">Cities</span></div>
       <div class="tally"><span class="num" id="statOpen">0</span><span class="lbl">Confirmed Open</span></div>
     </div>
   </header>
+
+  <div class="host-card">
+    <div class="host-avatar">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="48" fill="#FFFBF0" stroke="#1F3A5F" stroke-width="3"/>
+        <circle cx="50" cy="50" r="48" fill="none" stroke="#C8391E" stroke-width="2" stroke-dasharray="4 4"/>
+        <!-- toque -->
+        <path d="M32 46c0-10 6-17 18-17s18 7 18 17c0 2-1 3-3 3H35c-2 0-3-1-3-3z" fill="#FFFBF0" stroke="#1F3A5F" stroke-width="2.5"/>
+        <rect x="33" y="48" width="34" height="6" rx="2" fill="#FFFBF0" stroke="#1F3A5F" stroke-width="2.5"/>
+        <!-- mic -->
+        <rect x="46" y="58" width="8" height="16" rx="4" fill="#C8391E" stroke="#1F3A5F" stroke-width="2"/>
+        <line x1="50" y1="74" x2="50" y2="82" stroke="#1F3A5F" stroke-width="2.5"/>
+        <!-- fork -->
+        <line x1="66" y1="60" x2="76" y2="70" stroke="#E8A33D" stroke-width="3" stroke-linecap="round"/>
+        <line x1="73" y1="58" x2="76" y2="70" stroke="#E8A33D" stroke-width="3" stroke-linecap="round"/>
+        <line x1="69" y1="64" x2="76" y2="70" stroke="#E8A33D" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="host-body">
+      <h2>Who's John Catucci?</h2>
+      <p class="host-tag">Comedian · Actor · TV Host</p>
+      <p>Toronto-born comedian and actor who got his start in sketch comedy — touring with comedy duo The Doo Wops and the award-winning troupe Minnesota Wrecking Crew — before bringing his easy charm to Food Network Canada.</p>
+      <p>From 2012 to 2017 he criss-crossed Canada (with detours into the U.S. and Europe) hosting <i>You Gotta Eat Here!</i>, hunting down the diners, smokehouses and hole-in-the-wall joints worth the trip. He's kept the road trip going since as the host of <i>Big Food Bucket List</i>.</p>
+      <ul class="host-facts">
+        <li>Born Jul 11, 1973 · Toronto, ON</li>
+        <li>Studied at York University</li>
+        <li>Hosted You Gotta Eat Here! · 5 seasons (2012–2017)</li>
+        <li>Now hosting Big Food Bucket List</li>
+      </ul>
+    </div>
+  </div>
 
   <div class="order-pad">
     <span class="tag">Search</span>
